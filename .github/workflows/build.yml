@@ -35,6 +35,15 @@ jobs:
             node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts['$script'] ? 0 : 1)"
           }
 
+          if [ -f foundry.toml ]; then
+            echo "Foundry project — build"
+            curl -L https://foundry.paradigm.xyz | bash
+            export PATH="$HOME/.foundry/bin:$PATH"
+            foundryup
+            forge build
+            exit 0
+          fi
+
           if [ -f package.json ]; then
             echo "Detected Node.js $(node -v)"
             if [ -f pnpm-lock.yaml ]; then
@@ -46,20 +55,13 @@ jobs:
               yarn install --frozen-lockfile || yarn install
               RUN="yarn"
             else
-              if [ -f package-lock.json ]; then npm ci || npm install; else npm install; fi
+              if [ -f package-lock.json ]; then npm ci; else npm install; fi
               RUN="npm run"
             fi
 
             if [ -f hardhat.config.js ] || [ -f hardhat.config.ts ] || [ -f hardhat.config.cjs ]; then
               echo "Hardhat project — compile"
               npx hardhat compile
-              exit 0
-            fi
-            if [ -f foundry.toml ]; then
-              curl -L https://foundry.paradigm.xyz | bash
-              export PATH="$HOME/.foundry/bin:$PATH"
-              foundryup
-              forge build
               exit 0
             fi
             if has_npm_script build; then
@@ -81,10 +83,10 @@ jobs:
           if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f requirements.txt ] || [ -f Pipfile ]; then
             echo "Detected Python"
             python -m pip install --upgrade pip
-            if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
-            if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt || true; fi
+            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+            if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
             if [ -f pyproject.toml ]; then
-              pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
+              pip install -e ".[dev]" || pip install -e .
             fi
             python -m compileall -q .
             exit 0
